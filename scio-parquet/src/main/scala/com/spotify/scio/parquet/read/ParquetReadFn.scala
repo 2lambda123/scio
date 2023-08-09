@@ -17,7 +17,6 @@
 package com.spotify.scio.parquet.read
 
 import com.spotify.scio.parquet.BeamInputFile
-import com.spotify.scio.parquet.read.ParquetReadFn._
 import org.apache.beam.sdk.io.FileIO.ReadableFile
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration
 import org.apache.beam.sdk.io.range.OffsetRange
@@ -37,6 +36,8 @@ import java.util.{Set => JSet}
 import scala.jdk.CollectionConverters._
 
 object ParquetReadFn {
+  private lazy val logger = LoggerFactory.getLogger(this.getClass)
+
   sealed private trait Granularity
   private case object File extends Granularity
   private case object RowGroup extends Granularity
@@ -46,12 +47,11 @@ object ParquetReadFn {
   private val EntireFileRange = new OffsetRange(0, 1)
 }
 
-class ParquetReadFn[T, R](
+class ParquetReadFn[T](
   readSupportFactory: ReadSupportFactory[T],
-  conf: SerializableConfiguration,
-  projectionFn: SerializableFunction[T, R]
-) extends DoFn[ReadableFile, R] {
-  private val logger = LoggerFactory.getLogger(this.getClass)
+  conf: SerializableConfiguration
+) extends DoFn[ReadableFile, T] {
+  import ParquetReadFn._
 
   private lazy val granularity =
     conf.get().get(ParquetReadConfiguration.SplitGranularity) match {
@@ -120,7 +120,7 @@ class ParquetReadFn[T, R](
   def processElement(
     @Element file: ReadableFile,
     tracker: RestrictionTracker[OffsetRange, Long],
-    out: DoFn.OutputReceiver[R]
+    out: DoFn.OutputReceiver[T]
   ): Unit = {
     logger.debug(
       "reading file from offset {} to {}",
@@ -150,8 +150,7 @@ class ParquetReadFn[T, R](
       reader.setRequestedSchema(readContext.getRequestedSchema)
 
       val columnIOFactory = new ColumnIOFactory(parquetFileMetadata.getCreatedBy)
-      val recordConverter =
-        readSupport.prepareForRead(hadoopConf, fileMetadata, fileSchema, readContext)
+      val recordConverter = readSupport.prepareForRead(hadoopConf, fileMetadata, fileSchema, readContext)
       val columnIO = columnIOFactory.getColumnIO(readContext.getRequestedSchema, fileSchema, true)
 
       granularity match {
@@ -170,8 +169,7 @@ class ParquetReadFn[T, R](
               pages.getRowCount,
               file,
               recordReader,
-              out,
-              projectionFn
+              out
             )
             pages = reader.readNextRowGroup()
           }
@@ -191,8 +189,7 @@ class ParquetReadFn[T, R](
               pages.getRowCount,
               file,
               recordReader,
-              out,
-              projectionFn
+              out
             )
 
             currentRowGroupIndex += 1
@@ -208,8 +205,7 @@ class ParquetReadFn[T, R](
     rowCount: Long,
     file: ReadableFile,
     recordReader: RecordReader[T],
-    outputReceiver: DoFn.OutputReceiver[R],
-    projectionFn: SerializableFunction[T, R]
+    outputReceiver: DoFn.OutputReceiver[T]
   ): Unit = {
     logger.debug(
       "row group {} read in memory. row count = {}",
@@ -237,7 +233,7 @@ class ParquetReadFn[T, R](
           )
 
         } else {
-          outputReceiver.output(projectionFn(record))
+          outputReceiver.output(record)
         }
 
         currentRow += 1

@@ -92,8 +92,7 @@ final case class ParquetExampleIO(path: String) extends ScioIO[Example] {
       ParquetRead.read(
         ReadSupportFactory.example,
         new SerializableConfiguration(conf),
-        filePattern,
-        identity[Example]
+        filePattern
       )
     ).setCoder(coder)
   }
