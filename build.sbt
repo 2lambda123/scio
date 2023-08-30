@@ -1382,7 +1382,15 @@ lazy val integration: Project = project
       "org.apache.beam" % "beam-sdks-java-io-google-cloud-platform" % beamVersion % Test,
       "org.slf4j" % "log4j-over-slf4j" % slf4jVersion % Test,
       "org.slf4j" % "slf4j-simple" % slf4jVersion % Test
-    )
+    ),
+    // exclude problematic sources if we don't have GCP credentials
+    unmanagedSources / excludeFilter := {
+      if (BuildCredentials.exists) {
+        HiddenFileFilter
+      } else {
+        HiddenFileFilter || "BigQuery*.scala"
+      }
+    }
   )
 
 // =======================================================================
