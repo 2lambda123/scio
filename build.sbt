@@ -483,7 +483,8 @@ lazy val root: Project = Project("scio", file("."))
     `scio-repl`,
     `scio-smb`,
     `scio-tensorflow`,
-    `scio-test`
+    `scio-test`,
+    `integration`
   )
 
 lazy val `scio-core`: Project = project
@@ -1366,6 +1367,7 @@ lazy val integration: Project = project
   .settings(commonSettings)
   .settings(
     publish / skip := true,
+    test / aggregate := false,
     libraryDependencies ++= Seq(
       // test
       "com.dimafeng" %% "testcontainers-scala-elasticsearch" % testContainersVersion % Test,
