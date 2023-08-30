@@ -1362,9 +1362,11 @@ lazy val integration: Project = project
     `scio-extra` % "test->test",
     `scio-google-cloud-platform` % "test->test",
     `scio-neo4j` % "test->test",
-    `scio-smb` % "test->test"
+    `scio-smb` % "test->provided,test"
   )
   .settings(commonSettings)
+  .settings(jUnitSettings)
+  .settings(macroSettings)
   .settings(
     publish / skip := true,
     test / aggregate := false,
