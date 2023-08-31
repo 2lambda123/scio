@@ -46,4 +46,4 @@ jobs:
       - name: Setup project
         run: scripts/gha_setup.sh
       - name: Build documentation
-        run: sbt site/makeSite
+        run: sbt "site/makeSite"
