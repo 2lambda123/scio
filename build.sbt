@@ -1045,7 +1045,6 @@ lazy val `scio-parquet`: Project = project
       "com.google.cloud.bigdataoss" % "util-hadoop" % s"hadoop2-$bigdataossVersion",
       "com.google.protobuf" % "protobuf-java" % protobufVersion,
       "com.spotify" %% "magnolify-parquet" % magnolifyVersion,
-      "com.twitter" %% "chill" % chillVersion,
       "me.lyh" % "parquet-tensorflow" % parquetExtraVersion,
       "me.lyh" %% "parquet-avro" % parquetExtraVersion,
       "org.apache.avro" % "avro" % avroVersion,
