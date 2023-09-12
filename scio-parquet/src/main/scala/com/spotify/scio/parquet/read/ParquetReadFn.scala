@@ -150,7 +150,8 @@ class ParquetReadFn[T](
       reader.setRequestedSchema(readContext.getRequestedSchema)
 
       val columnIOFactory = new ColumnIOFactory(parquetFileMetadata.getCreatedBy)
-      val recordConverter = readSupport.prepareForRead(hadoopConf, fileMetadata, fileSchema, readContext)
+      val recordConverter =
+        readSupport.prepareForRead(hadoopConf, fileMetadata, fileSchema, readContext)
       val columnIO = columnIOFactory.getColumnIO(readContext.getRequestedSchema, fileSchema, true)
 
       granularity match {
