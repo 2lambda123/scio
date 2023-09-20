@@ -17,6 +17,7 @@
 package com.spotify.scio.parquet.read
 
 import com.spotify.scio.parquet.BeamInputFile
+import com.spotify.scio.util.Functions
 import org.apache.beam.sdk.io.FileIO.ReadableFile
 import org.apache.beam.sdk.io.hadoop.SerializableConfiguration
 import org.apache.beam.sdk.io.range.OffsetRange
@@ -45,12 +46,26 @@ object ParquetReadFn {
   // Constants
   private val SplitLimit = 64000000L
   private val EntireFileRange = new OffsetRange(0, 1)
+
+  def apply[T, U](
+    readSupportFactory: ReadSupportFactory[T],
+    conf: SerializableConfiguration,
+    parseFn: T => U
+  ): ParquetReadFn[T, U] =
+    new ParquetReadFn(readSupportFactory, conf, Functions.serializableFn(parseFn))
+
+  def apply[T](
+    readSupportFactory: ReadSupportFactory[T],
+    conf: SerializableConfiguration
+  ): ParquetReadFn[T, T] =
+    new ParquetReadFn(readSupportFactory, conf, Functions.serializableFn(identity))
 }
 
-class ParquetReadFn[T](
+class ParquetReadFn[T, U] private (
   readSupportFactory: ReadSupportFactory[T],
-  conf: SerializableConfiguration
-) extends DoFn[ReadableFile, T] {
+  conf: SerializableConfiguration,
+  parseFn: SerializableFunction[T, U]
+) extends DoFn[ReadableFile, U] {
   import ParquetReadFn._
 
   private lazy val granularity =
@@ -120,7 +135,7 @@ class ParquetReadFn[T](
   def processElement(
     @Element file: ReadableFile,
     tracker: RestrictionTracker[OffsetRange, Long],
-    out: DoFn.OutputReceiver[T]
+    out: DoFn.OutputReceiver[U]
   ): Unit = {
     logger.debug(
       "reading file from offset {} to {}",
@@ -170,6 +185,7 @@ class ParquetReadFn[T](
               pages.getRowCount,
               file,
               recordReader,
+              parseFn,
               out
             )
             pages = reader.readNextRowGroup()
@@ -190,6 +206,7 @@ class ParquetReadFn[T](
               pages.getRowCount,
               file,
               recordReader,
+              parseFn,
               out
             )
 
@@ -206,7 +223,8 @@ class ParquetReadFn[T](
     rowCount: Long,
     file: ReadableFile,
     recordReader: RecordReader[T],
-    outputReceiver: DoFn.OutputReceiver[T]
+    parseFn: SerializableFunction[T, U],
+    outputReceiver: DoFn.OutputReceiver[U]
   ): Unit = {
     logger.debug(
       "row group {} read in memory. row count = {}",
@@ -234,7 +252,7 @@ class ParquetReadFn[T](
           )
 
         } else {
-          outputReceiver.output(record)
+          outputReceiver.output(parseFn(record))
         }
 
         currentRow += 1
