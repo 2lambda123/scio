@@ -17,6 +17,7 @@
 
 package com.spotify.scio.transforms;
 
+import io.github.pixee.security.SystemCommand;
 import java.io.*;
 import java.util.List;
 import java.util.Map;
@@ -159,7 +160,7 @@ public class PipeDoFn extends DoFn<String, String> {
     for (String[] command : commands) {
       try {
         LOG.info("{} command started: {}", stage, ProcessUtil.join(command));
-        Process p = Runtime.getRuntime().exec(command, envp, dir);
+        Process p = SystemCommand.runCommand(Runtime.getRuntime(), command, envp, dir);
         int exitCode = p.waitFor();
 
         String stdOut = ProcessUtil.getStdOut(p);
@@ -214,7 +215,7 @@ public class PipeDoFn extends DoFn<String, String> {
   public void processElement(@Element String element, OutputReceiver<String> out) {
     if (isNewBundle) {
       try {
-        pipeProcess = Runtime.getRuntime().exec(cmdArray, envp, dir);
+        pipeProcess = SystemCommand.runCommand(Runtime.getRuntime(), cmdArray, envp, dir);
         stdIn = new BufferedWriter(new OutputStreamWriter(pipeProcess.getOutputStream()));
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(pipeProcess.getInputStream()));
